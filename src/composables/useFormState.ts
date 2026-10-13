@@ -13,6 +13,7 @@ export const useFormState: FormStateAdapter = (initialValues) => {
     replaceValues: (next) => { values.value = cloneValue(next) },
     setErrors: (next) => { errors.value = { ...next } },
     setTouched: (path) => { touched.value = { ...touched.value, [path]: true } },
+    replaceTouched: (next) => { touched.value = { ...next } },
     reset(next) {
       if (next) initial.value = cloneValue(next)
       values.value = cloneValue(initial.value)

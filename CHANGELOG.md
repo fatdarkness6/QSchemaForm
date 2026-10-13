@@ -2,6 +2,29 @@
 
 Notable changes are recorded here. Git tags identify source versions; npm publication is a separate step.
 
+## [0.2.0] - 2026-10-13
+
+### Added
+
+- Eight built-in field types: date, time, radio, file, slider, range, rating and rich-text editor.
+- Validation helpers: required, matching fields, strict ISO dates, date comparisons, file sizes/types, validator composition and asynchronous availability checks.
+- AbortSignal support for custom validators and protection against superseded submissions.
+- Repeatable object groups with add/remove/reorder controls, item limits, stable row keys and remapped error/touched state.
+- Scoped `validateFields()` and public array manipulation methods in refs and slots.
+- `QSchemaWizard` with guarded forward navigation, preserved values, full submission validation, invalid-step recovery and reset.
+- Runnable playground examples, README usage examples and behavioral regression tests for the additions.
+
+### Changed
+
+- Custom state adapters must implement `replaceTouched(map)` to replace the entire touched map. Bundled adapters are updated.
+- Slider/range value bubbles use `props.valueLabel`; the field's `label` remains its title.
+
+### Fixed
+
+- VeeValidate indexed error/touched paths are normalized consistently with the form engine.
+- Standard Schema validation unwraps Vue proxies to support schemas with non-configurable properties.
+- Composite controls avoid duplicate validation when focus leaves a field.
+
 ## [0.1.1] - 2026-10-13
 
 ### Fixed
@@ -36,3 +59,4 @@ Initial version of QSchemaForm, prepared for npm publication.
 
 [0.1.0]: https://github.com/fatdarkness6/QSchemaForm/tree/v0.1.0
 [0.1.1]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.1.0...v0.1.1
+[0.2.0]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.1.1...v0.2.0

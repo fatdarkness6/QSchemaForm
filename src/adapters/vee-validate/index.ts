@@ -6,6 +6,9 @@ import type {
   FormValues,
 } from "../../types/index.js";
 import { cloneValue, equalValues } from "../../utils/values.js";
+import { pathSegments } from '../../utils/paths.js';
+
+const veePath = (path: string) => pathSegments(path).reduce<string>((result, segment) => typeof segment === 'number' ? `${result}[${segment}]` : `${result}${result ? '.' : ''}${segment}`, '');
 
 /** Optional VeeValidate state ownership. The form engine supplies validation results. */
 export const veeValidateAdapter: FormStateAdapter = (initialValues) => {
@@ -25,6 +28,13 @@ export const veeValidateAdapter: FormStateAdapter = (initialValues) => {
         ]),
       ]),
     );
+  const setTouched = (path: string) => {
+    if (!paths.value.includes(path)) {
+      form.defineField(veePath(path), { validateOnModelUpdate: false, validateOnBlur: false, validateOnChange: false, validateOnInput: false });
+      paths.value = [...paths.value, path];
+    }
+    form.setFieldTouched(path, true);
+  };
   return {
     values: computed(() => form.values),
     errors: computed(
@@ -32,7 +42,7 @@ export const veeValidateAdapter: FormStateAdapter = (initialValues) => {
         Object.fromEntries(
           Object.entries(form.errorBag.value).filter(
             (entry) => entry[1]?.length,
-          ),
+          ).map(([path, messages]) => [pathSegments(path).join('.'), messages]),
         ) as ErrorMap,
     ),
     touched: computed(() =>
@@ -52,7 +62,7 @@ export const veeValidateAdapter: FormStateAdapter = (initialValues) => {
         {
           values: cloneValue(values),
           touched: Object.fromEntries(
-            paths.value.map((path) => [path, form.isFieldTouched(path)]),
+            paths.value.map((path) => [veePath(path), form.isFieldTouched(path)]),
           ),
           errors: { ...form.errors.value },
         },
@@ -60,17 +70,10 @@ export const veeValidateAdapter: FormStateAdapter = (initialValues) => {
       );
       setErrors(errors);
     },
-    setTouched(path) {
-      if (!paths.value.includes(path)) {
-        form.defineField(path, {
-          validateOnModelUpdate: false,
-          validateOnBlur: false,
-          validateOnChange: false,
-          validateOnInput: false,
-        });
-        paths.value = [...paths.value, path];
-      }
-      form.setFieldTouched(path, true);
+    setTouched,
+    replaceTouched(next) {
+      form.setTouched(Object.fromEntries(paths.value.map((path) => [path, false])));
+      for (const [path, touched] of Object.entries(next)) if (touched) setTouched(path);
     },
     setErrors,
     reset(values) {

@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { SchemaAdapter, SchemaSource } from "../../types/index.js";
+import { toRaw } from 'vue';
 
 /** Adapts compatible validators without importing their implementation. */
 export function standardSchemaAdapter<I, O>(
@@ -7,7 +8,7 @@ export function standardSchemaAdapter<I, O>(
 ): SchemaAdapter<I, O> {
   return {
     async validate(values) {
-      const result = await schema["~standard"].validate(values);
+      const result = await toRaw(schema)["~standard"].validate(values);
       if (!result.issues) return { valid: true, value: result.value };
       return {
         valid: false,

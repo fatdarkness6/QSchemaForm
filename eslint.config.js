@@ -18,5 +18,5 @@ export default ts.config(
     // Core control-flow analysis cannot see reads made by a Vue template.
     rules: { 'no-useless-assignment': 'off' },
   },
-  { files: ['src/fields/index.ts', 'tests/**/*.ts'], rules: { 'vue/one-component-per-file': 'off' } },
+  { files: ['src/fields/*.ts', 'tests/**/*.ts'], rules: { 'vue/one-component-per-file': 'off' } },
 )

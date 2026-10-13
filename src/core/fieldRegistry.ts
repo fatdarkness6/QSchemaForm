@@ -2,6 +2,7 @@ import { markRaw, shallowReactive } from 'vue'
 import type { Component } from 'vue'
 import type { FieldRegistry } from '../types/index.js'
 import { QInputField, QNumberField, QTextareaField, QSelectField, QCheckboxField, QToggleField } from '../fields/index.js'
+import { QDateField, QTimeField, QRadioField, QFileField, QSliderField, QRangeField, QRatingField, QEditorField } from '../fields/advanced.js'
 
 /** Each call creates an isolated registry. No registration happens at module scope. */
 export function createFieldRegistry(custom: Record<string, Component> = {}): FieldRegistry {
@@ -12,6 +13,8 @@ export function createFieldRegistry(custom: Record<string, Component> = {}): Fie
     select: QSelectField,
     checkbox: QCheckboxField,
     toggle: QToggleField,
+    date: QDateField, time: QTimeField, radio: QRadioField, file: QFileField,
+    slider: QSliderField, range: QRangeField, rating: QRatingField, editor: QEditorField,
     ...custom,
   })))
   return {

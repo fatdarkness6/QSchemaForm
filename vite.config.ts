@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [vue()],
   build: {
     lib: {
-      entry: Object.fromEntries(['index', 'adapters/yup/index', 'adapters/zod/index', 'adapters/vee-validate/index', 'compat/index', 'phone/index'].map((entry) => [entry, fileURLToPath(new URL(`./src/${entry}.ts`, import.meta.url))])),
+      entry: Object.fromEntries(['index', 'adapters/yup/index', 'adapters/zod/index', 'adapters/vee-validate/index', 'compat/index', 'phone/index', 'wizard/index'].map((entry) => [entry, fileURLToPath(new URL(`./src/${entry}.ts`, import.meta.url))])),
       formats: ['es'],
       fileName: (_format, name) => `${name}.js`,
     },

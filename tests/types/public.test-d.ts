@@ -4,7 +4,7 @@ import { zodAdapter } from '../../src/adapters/zod'
 import { yupAdapter } from '../../src/adapters/yup'
 import { z } from 'zod'
 import * as yup from 'yup'
-import type { FieldMap, SchemaAdapter } from '../../src'
+import type { FieldArrayDefinition, FieldMap, SchemaAdapter } from '../../src'
 import type { PhoneFieldProps } from '../../src/phone'
 
 const zod = zodAdapter(z.object({ name: z.string(), count: z.string().transform(Number) }))
@@ -28,5 +28,14 @@ defineFields<{ name: string }>()({ name: { type: 'input' }, typo: { type: 'input
 
 const phoneProps: PhoneFieldProps = { defaultCountry: 'IR', locale: 'fa', dense: true }
 defineFields<{ phone: string }>()({ phone: { type: 'phone', props: phoneProps } })
+const arrays: FieldArrayDefinition<{ contacts: { email: string }[]; name: string }>[] = [{
+  path: 'contacts', label: 'Contacts', createItem: () => ({ email: '' }),
+  fields: { email: { type: 'input' },
+    // @ts-expect-error Paths are relative to the array item.
+    unknownField: { type: 'input' },
+  },
+}]
+void arrays
+defineFields<{ document: File | null; day: string }>()({ document: { type: 'file' }, day: { type: 'date' } })
 // @ts-expect-error Phone countries are supported ISO region codes.
 defineFields<{ phone: string }>()({ phone: { type: 'phone', props: { defaultCountry: 'Invalid' } } })

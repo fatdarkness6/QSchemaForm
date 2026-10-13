@@ -3,6 +3,7 @@ import type { QSchemaFormOptions } from '../types/index.js'
 import { configurationKey } from './configuration.js'
 import { createFieldRegistry } from './fieldRegistry.js'
 import QSchemaForm from '../components/QSchemaForm.vue'
+import QSchemaWizard from '../components/QSchemaWizard.vue'
 
 /** Create once per application (once per request in SSR). Installation is optional. */
 export function createQSchemaForm(options: QSchemaFormOptions = {}) {
@@ -12,6 +13,7 @@ export function createQSchemaForm(options: QSchemaFormOptions = {}) {
     install(app: App) {
       app.provide(configurationKey, { ...options, registry })
       app.component('QSchemaForm', QSchemaForm as Component)
+      app.component('QSchemaWizard', QSchemaWizard as Component)
     },
   }
 }

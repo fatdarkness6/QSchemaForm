@@ -38,8 +38,8 @@ const bindings = computed<FieldBindings>(() => ({
   label: props.translate(props.field.label ?? props.field.path),
   ...(props.field.placeholder ? { placeholder: props.translate(props.field.placeholder) } : {}),
   ...(props.field.hint ? { hint: props.translate(props.field.hint) } : {}),
-  ...(props.field.type === 'select' ? {
-    options: options.options.value.map((option) => typeof option === 'object' ? { ...option, label: props.translate(option.label) } : option),
+  ...(['select', 'radio'].includes(props.field.type ?? '') ? {
+    options: options.options.value.map((option) => typeof option === 'object' ? { ...option, label: props.translate(option.label) } : props.field.type === 'radio' ? { label: String(option), value: option } : option),
   } : {}),
   error: Boolean(props.error || options.error.value),
   errorMessage: props.error ?? (options.error.value ? props.translate('Unable to load options') : undefined),

@@ -7,6 +7,9 @@ import ZodExample from "./examples/ZodExample.vue";
 import YupExample from "./examples/YupExample.vue";
 import CustomExample from "./examples/CustomExample.vue";
 import LegacyExample from "./examples/LegacyExample.vue";
+import AdvancedExample from './examples/AdvancedExample.vue';
+import ArrayExample from './examples/ArrayExample.vue';
+import WizardExample from './examples/WizardExample.vue';
 
 const tab = ref("zod");
 </script>
@@ -32,6 +35,7 @@ const tab = ref("zod");
     </header>
     <section class="example-card">
       <QTabs v-model="tab" align="left" active-color="primary" narrow-indicator>
+        <QTab name="advanced" label="Inputs + validation" /><QTab name="arrays" label="Repeatable groups" /><QTab name="wizard" label="Wizard" />
         <QTab name="zod" label="Zod + nested fields" /><QTab
           name="yup"
           label="Yup + VeeValidate"
@@ -41,6 +45,9 @@ const tab = ref("zod");
         />
       </QTabs>
       <QTabPanels v-model="tab" animated>
+        <QTabPanel name="advanced"><AdvancedExample /></QTabPanel>
+        <QTabPanel name="arrays"><ArrayExample /></QTabPanel>
+        <QTabPanel name="wizard"><WizardExample /></QTabPanel>
         <QTabPanel name="zod"><ZodExample /></QTabPanel><QTabPanel name="yup"><YupExample /></QTabPanel><QTabPanel name="custom"><CustomExample /></QTabPanel><QTabPanel name="legacy"><LegacyExample /></QTabPanel>
       </QTabPanels>
     </section>

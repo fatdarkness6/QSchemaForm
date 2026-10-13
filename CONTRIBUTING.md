@@ -19,9 +19,10 @@ Open the local URL printed in the terminal. Playground edits update live. After 
 
 | Path | Purpose |
 | --- | --- |
-| `src/components` | Form and individual-field rendering |
+| `src/components` | Form, wizard, repeatable-group and individual-field rendering |
 | `src/core` | Validation, submission, configuration, and field registration |
 | `src/fields` | Built-in Quasar input wrappers |
+| `src/validation` | Reusable field validation helpers |
 | `src/phone` | Optional international phone component |
 | `src/adapters` | Optional schema/state integrations |
 | `src/types` | Public TypeScript contracts |
