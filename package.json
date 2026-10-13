@@ -1,0 +1,133 @@
+{
+  "name": "q-schema-form",
+  "version": "0.1.0",
+  "description": "Schema-driven, typed and localized forms for Vue and Quasar.",
+  "author": {
+    "name": "fatdarkness6",
+    "url": "https://github.com/fatdarkness6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fatdarkness6/QSchemaForm.git"
+  },
+  "homepage": "https://github.com/fatdarkness6/QSchemaForm#readme",
+  "bugs": {
+    "url": "https://github.com/fatdarkness6/QSchemaForm/issues"
+  },
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "vue",
+    "quasar",
+    "forms",
+    "schema",
+    "yup",
+    "zod",
+    "standard-schema"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./yup": {
+      "types": "./dist/adapters/yup/index.d.ts",
+      "import": "./dist/adapters/yup/index.js"
+    },
+    "./zod": {
+      "types": "./dist/adapters/zod/index.d.ts",
+      "import": "./dist/adapters/zod/index.js"
+    },
+    "./vee-validate": {
+      "types": "./dist/adapters/vee-validate/index.d.ts",
+      "import": "./dist/adapters/vee-validate/index.js"
+    },
+    "./compat": {
+      "types": "./dist/compat/index.d.ts",
+      "import": "./dist/compat/index.js"
+    },
+    "./phone": {
+      "types": "./dist/phone/index.d.ts",
+      "import": "./dist/phone/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite build && vue-tsc -p tsconfig.build.json && node scripts/finalize-types.mjs && vite --config playground/vite.config.ts",
+    "build": "vite build && vue-tsc -p tsconfig.build.json && node scripts/finalize-types.mjs",
+    "build:playground": "vite build --config playground/vite.config.ts",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:package": "node scripts/check-package.mjs",
+    "check": "vite build && vue-tsc -p tsconfig.build.json && node scripts/finalize-types.mjs && vue-tsc --noEmit && eslint . && vitest run && vite build --config playground/vite.config.ts && node scripts/check-package.mjs",
+    "prepare": "vite build && vue-tsc -p tsconfig.build.json && node scripts/finalize-types.mjs",
+    "version": "node scripts/sync-version.mjs && git add src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
+  },
+  "peerDependencies": {
+    "libphonenumber-js": "^1.13.15",
+    "quasar": "^2.18.0",
+    "vee-validate": "^4.15.0",
+    "vue": "^3.5.0",
+    "yup": "^1.7.0",
+    "zod": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "libphonenumber-js": {
+      "optional": true
+    },
+    "yup": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    },
+    "vee-validate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@quasar/extras": "1.16.17",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/server-renderer": "^3.5.43",
+    "@vue/test-utils": "^2.4.6",
+    "eslint": "^10.12.0",
+    "eslint-plugin-vue": "^10.5.0",
+    "globals": "^16.5.0",
+    "jsdom": "^29.0.0",
+    "libphonenumber-js": "^1.13.15",
+    "quasar": "^2.35.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vee-validate": "^4.15.1",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "vue": "^3.5.43",
+    "vue-eslint-parser": "10.3.0",
+    "vue-tsc": "^3.3.13",
+    "yup": "^1.7.0",
+    "zod": "^4.0.0"
+  }
+}

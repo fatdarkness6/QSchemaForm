@@ -1,0 +1,9 @@
+node_modules/
+dist/
+playground/dist/
+coverage/
+.consumer-test/
+*.tgz
+*.tsbuildinfo
+.pnpm-store/
+pack-result.json
