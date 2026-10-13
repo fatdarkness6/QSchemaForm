@@ -6,10 +6,10 @@ import { locale } from "./localization";
 import ZodExample from "./examples/ZodExample.vue";
 import YupExample from "./examples/YupExample.vue";
 import CustomExample from "./examples/CustomExample.vue";
-import LegacyExample from "./examples/LegacyExample.vue";
 import AdvancedExample from './examples/AdvancedExample.vue';
 import ArrayExample from './examples/ArrayExample.vue';
 import WizardExample from './examples/WizardExample.vue';
+import ServerExample from './examples/ServerExample.vue';
 
 const tab = ref("zod");
 </script>
@@ -35,20 +35,19 @@ const tab = ref("zod");
     </header>
     <section class="example-card">
       <QTabs v-model="tab" align="left" active-color="primary" narrow-indicator>
+        <QTab name="server" label="Server + dynamic values" />
         <QTab name="advanced" label="Inputs + validation" /><QTab name="arrays" label="Repeatable groups" /><QTab name="wizard" label="Wizard" />
         <QTab name="zod" label="Zod + nested fields" /><QTab
           name="yup"
           label="Yup + VeeValidate"
-        /><QTab name="custom" label="Custom fields" /><QTab
-          name="legacy"
-          label="Migration"
-        />
+        /><QTab name="custom" label="Custom fields" />
       </QTabs>
       <QTabPanels v-model="tab" animated>
+        <QTabPanel name="server"><ServerExample /></QTabPanel>
         <QTabPanel name="advanced"><AdvancedExample /></QTabPanel>
         <QTabPanel name="arrays"><ArrayExample /></QTabPanel>
         <QTabPanel name="wizard"><WizardExample /></QTabPanel>
-        <QTabPanel name="zod"><ZodExample /></QTabPanel><QTabPanel name="yup"><YupExample /></QTabPanel><QTabPanel name="custom"><CustomExample /></QTabPanel><QTabPanel name="legacy"><LegacyExample /></QTabPanel>
+        <QTabPanel name="zod"><ZodExample /></QTabPanel><QTabPanel name="yup"><YupExample /></QTabPanel><QTabPanel name="custom"><CustomExample /></QTabPanel>
       </QTabPanels>
     </section>
     <p class="text-caption text-grey-7 q-mt-md">

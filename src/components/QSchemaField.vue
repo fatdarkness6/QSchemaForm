@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import type { FieldBindings, FieldContext, FieldDefinition, FieldRegistry, FormValues, Translate, Direction } from '../types/index.js'
 import { getPath } from '../utils/paths.js'
 import { useFieldOptions } from '../composables/useFieldOptions.js'
+import { resolveFieldProps } from '../core/fieldProps.js'
 
 const props = defineProps<{
   field: FieldDefinition<T>
@@ -29,10 +30,10 @@ const component = computed(() => {
 })
 const options = useFieldOptions(() => props.field, () => context.value)
 watch(options.error, (error) => { if (error) emit('error', error) })
+const componentProps = computed(() => ({ ...props.defaultProps, ...resolveFieldProps(props.field.props, context.value) }))
 const bindings = computed<FieldBindings>(() => ({
   ...(props.field.type === 'select' ? { emitValue: true, mapOptions: true } : {}),
-  ...props.defaultProps,
-  ...props.field.props,
+  ...componentProps.value,
   name: props.field.path,
   modelValue: getPath(props.values, props.field.path),
   label: props.translate(props.field.label ?? props.field.path),
@@ -41,19 +42,20 @@ const bindings = computed<FieldBindings>(() => ({
   ...(['select', 'radio'].includes(props.field.type ?? '') ? {
     options: options.options.value.map((option) => typeof option === 'object' ? { ...option, label: props.translate(option.label) } : props.field.type === 'radio' ? { label: String(option), value: option } : option),
   } : {}),
+  ...(props.field.type === 'select' && componentProps.value.useInput && typeof props.field.options === 'function' ? { onFilter: options.filter } : {}),
   error: Boolean(props.error || options.error.value),
   errorMessage: props.error ?? (options.error.value ? props.translate('Unable to load options') : undefined),
-  loading: options.loading.value || Boolean(props.field.props && 'loading' in props.field.props && props.field.props.loading),
-  disable: props.disabled || condition(props.field.disabled) || Boolean(props.field.props?.disable),
-  readonly: props.readonly || condition(props.field.readonly) || Boolean(props.field.props && 'readonly' in props.field.props && props.field.props.readonly),
+  loading: options.loading.value || Boolean(componentProps.value.loading),
+  disable: props.disabled || condition(props.field.disabled) || Boolean(componentProps.value.disable),
+  readonly: props.readonly || condition(props.field.readonly) || Boolean(componentProps.value.readonly),
   dir: props.field.direction ?? props.direction ?? 'ltr',
-  'aria-invalid': Boolean(props.error),
+  'aria-invalid': Boolean(props.error || options.error.value),
 }))
 </script>
 
 <template>
   <div :class="field.class ?? 'col-12'" :data-field="field.path">
-    <slot :field="field" :bindings="bindings" :set-value="(value: unknown) => emit('change', field.path, value)" :blur="() => emit('blur', field.path)">
+    <slot :field="field" :bindings="bindings" :set-value="(value: unknown) => emit('change', field.path, value)" :blur="() => emit('blur', field.path)" :reload-options="options.reload">
       <component :is="component" v-bind="bindings" @update:model-value="emit('change', field.path, $event)" @blur="emit('blur', field.path)" />
     </slot>
   </div>

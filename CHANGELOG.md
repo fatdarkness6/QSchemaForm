@@ -2,6 +2,22 @@
 
 Notable changes are recorded here. Git tags identify source versions; npm publication is a separate step.
 
+## [0.3.0] - 2026-10-13
+
+### Added
+
+- Shared `setValues`, `loadValues`, `cancelLoad` and `applyServerResponse` APIs for all field types, custom controls and wizards.
+- Value loading that preserves dirty edits, discards stale responses, exposes loading/errors and establishes an explicit reset baseline.
+- Nested patches with atomic arrays/File/Date handling, safe key checks and indexed metadata cleanup when groups are replaced.
+- Server field/form error mapping and submission callbacks that ignore responses for superseded edits.
+- Searchable async dropdowns with loader `context.query`, native input debouncing, cancellation and field-slot `reloadOptions()` retries.
+- Reactive field `props(context)` and typed native input/textarea attributes.
+- A runnable Server + dynamic values example and native/VeeValidate regression tests.
+
+### Removed
+
+- Migration playground tab, compatibility component, `q-schema-form/compat` export and legacy compatibility tests. Compatibility consumers must use `QSchemaForm` directly. The original root FormBuilder.vue remains a source reference.
+
 ## [0.2.0] - 2026-10-13
 
 ### Added
@@ -60,3 +76,4 @@ Initial version of QSchemaForm, prepared for npm publication.
 [0.1.0]: https://github.com/fatdarkness6/QSchemaForm/tree/v0.1.0
 [0.1.1]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.1.0...v0.1.1
 [0.2.0]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.1.1...v0.2.0
+[0.3.0]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.2.0...v0.3.0

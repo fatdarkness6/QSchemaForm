@@ -46,13 +46,11 @@ if (process.argv.includes('--adapters')) {
   const { yupAdapter } = await import('q-schema-form/yup')
   const { zodAdapter } = await import('q-schema-form/zod')
   const { veeValidateAdapter } = await import('q-schema-form/vee-validate')
-  const { FormBuilder } = await import('q-schema-form/compat')
   const yup = await import('yup')
   const { z } = await import('zod')
   assert.equal((await yupAdapter(yup.object({ name: yup.string().required() })).validate({ name: 'Ada' })).valid, true)
   assert.equal((await zodAdapter(z.object({ name: z.string() })).validate({ name: 'Ada' })).valid, true)
   assert.equal(typeof veeValidateAdapter, 'function')
-  assert.equal(typeof FormBuilder, 'object')
 } else {
   for (const name of ['yup', 'zod', 'vee-validate', ...(process.argv.includes('--phone') ? [] : ['libphonenumber-js'])]) {
     await assert.rejects(import(name), { code: 'ERR_MODULE_NOT_FOUND' })

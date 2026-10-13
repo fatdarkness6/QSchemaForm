@@ -1,10 +1,12 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type { Component, ComputedRef, Ref } from 'vue'
+import type { Component, ComputedRef, Ref, InputHTMLAttributes, TextareaHTMLAttributes } from 'vue'
 import type { QInputProps, QSelectProps, QCheckboxProps, QToggleProps, QDateProps, QTimeProps, QOptionGroupProps, QFileProps, QSliderProps, QRangeProps, QRatingProps, QEditorProps } from 'quasar'
 
 export type FormValues = Record<string, unknown>
 export type Direction = 'ltr' | 'rtl' | 'auto'
 export type MaybePromise<T> = T | Promise<T>
+/** Object patches merge recursively; arrays and non-plain values are replaced whole. */
+export type DeepPartial<T> = T extends Date | Blob | readonly unknown[] ? T : T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T
 export type FieldPath<T, Depth extends unknown[] = []> = Depth['length'] extends 4 ? never : {
   [K in keyof T & string]: T[K] extends readonly (infer Item)[]
     ? K | `${K}.${number}` | `${K}.${number}.${FieldPath<Item, [...Depth, 0]>}`
@@ -18,7 +20,10 @@ export interface FieldContext<T = FormValues> {
   getValue: (path: string) => unknown
   /** Aborted when a validation run is superseded; available to field validators. */
   signal?: AbortSignal
+  /** Current search text when loading dropdown options. */
+  query?: string
 }
+export type FieldProps<T, Props> = Props | ((context: FieldContext<T>) => Props)
 export type FieldValidator<T = FormValues> = (value: unknown, context: FieldContext<T>) => MaybePromise<string | readonly string[] | undefined>
 export type Condition<T> = boolean | ((context: FieldContext<T>) => boolean)
 export type SelectOption = string | number | { label: string; value: unknown; disable?: boolean }
@@ -26,9 +31,9 @@ export type OptionsSource<T> = readonly SelectOption[] | ((context: FieldContext
 
 /** Extend through declaration merging to type a registered custom field's props. */
 export interface FieldPropsMap {
-  input: Partial<QInputProps>
-  number: Partial<QInputProps>
-  textarea: Partial<QInputProps>
+  input: Partial<QInputProps> & InputHTMLAttributes
+  number: Partial<QInputProps> & InputHTMLAttributes
+  textarea: Partial<QInputProps> & TextareaHTMLAttributes
   select: Partial<QSelectProps>
   checkbox: Partial<QCheckboxProps>
   toggle: Partial<QToggleProps>
@@ -59,8 +64,8 @@ export interface FieldBase<T = FormValues> {
   validate?: FieldValidator<T>
 }
 export type FieldConfig<T = FormValues> = FieldBase<T> & (
-  | { [K in keyof FieldPropsMap]: { type: K; props?: FieldPropsMap[K] } }[keyof FieldPropsMap]
-  | { type?: undefined; props?: Partial<QInputProps> }
+  | { [K in keyof FieldPropsMap]: { type: K; props?: FieldProps<T, FieldPropsMap[K]> } }[keyof FieldPropsMap]
+  | { type?: undefined; props?: FieldProps<T, FieldPropsMap['input']> }
 )
 export type FieldMap<T = FormValues> = Partial<Record<FieldPath<T>, FieldConfig<T>>>
 export type FieldDefinition<T = FormValues> = FieldConfig<T> & { path: string; arrayPath?: string; arrayIndex?: number }
@@ -154,11 +159,30 @@ export interface QSchemaFormOptions {
   defaultFieldProps?: Record<string, unknown>
   fields?: Record<string, Component>
 }
-export interface SubmitContext {
-  reset: () => void
-  setErrors: (errors: Record<string, string | readonly string[]>) => void
+export interface SetValuesOptions {
+  /** Preserve values that differ from the current reset baseline. */
+  keepDirtyValues?: boolean
+  /** Treat incoming data as the new reset baseline. */
+  asInitial?: boolean
 }
-export interface FormActions<Input = FormValues, Output = Input> extends SubmitContext {
+export interface ValueLoadContext<Input = FormValues> {
+  values: Readonly<Input>
+  signal: AbortSignal
+}
+export type ValueLoader<Input = FormValues> = (context: ValueLoadContext<Input>) => MaybePromise<DeepPartial<Input>>
+/** Map your API's response shape into this explicit, transport-independent contract. */
+export interface ServerResponse<Input = FormValues> {
+  values?: DeepPartial<Input>
+  errors?: Record<string, string | readonly string[]>
+}
+export interface SubmitContext<Input = FormValues> {
+  reset: (values?: Input) => void
+  setErrors: (errors: Record<string, string | readonly string[]>) => void
+  setValues: (values: DeepPartial<Input>, options?: SetValuesOptions) => void
+  applyServerResponse: (response: ServerResponse<Input>, options?: SetValuesOptions) => void
+}
+export interface FormActions<Input = FormValues, Output = Input> extends SubmitContext<Input> {
+  readonly loadingValues: boolean
   validate: () => Promise<ValidationResult<Output>>
   submit: () => Promise<ValidationResult<Output> | undefined>
   clearErrors: () => void
@@ -167,6 +191,8 @@ export interface FormActions<Input = FormValues, Output = Input> extends SubmitC
   appendArrayItem: (path: FieldArrayPath<Input>, value?: unknown) => boolean
   removeArrayItem: (path: FieldArrayPath<Input>, index: number) => boolean
   moveArrayItem: (path: FieldArrayPath<Input>, from: number, to: number) => boolean
+  loadValues: (loader: ValueLoader<Input>, options?: SetValuesOptions) => Promise<boolean>
+  cancelLoad: () => void
 }
 export interface WizardActions<Input = FormValues, Output = Input> extends FormActions<Input, Output> {
   nextStep: () => Promise<boolean>

@@ -1,6 +1,6 @@
 {
   "name": "q-schema-form",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Schema-driven, typed and localized forms for Vue and Quasar.",
   "author": {
     "name": "fatdarkness6",
@@ -51,10 +51,6 @@
     "./vee-validate": {
       "types": "./dist/adapters/vee-validate/index.d.ts",
       "import": "./dist/adapters/vee-validate/index.js"
-    },
-    "./compat": {
-      "types": "./dist/compat/index.d.ts",
-      "import": "./dist/compat/index.js"
     },
     "./phone": {
       "types": "./dist/phone/index.d.ts",

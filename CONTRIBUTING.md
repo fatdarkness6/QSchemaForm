@@ -31,7 +31,7 @@ Open the local URL printed in the terminal. Playground edits update live. After 
 | `tests` | Behavior, adapter, type, and consumer checks |
 | `scripts` | Declaration, version, and package helpers |
 | `dist` | Generated package output; do not edit or commit it |
-| `FormBuilder.vue` | Original component, preserved as a regression reference |
+| `FormBuilder.vue` | Original source reference; excluded from the package and checks |
 
 ## Before a pull request
 

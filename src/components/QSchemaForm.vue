@@ -28,8 +28,12 @@ import { normalizeForm, applyDefaults } from "../core/normalizeForm.js";
 import { useFormEngine } from "../core/formEngine.js";
 import { getPath } from "../utils/paths.js";
 import QSchemaField from "./QSchemaField.vue";
-import QSchemaArray from './QSchemaArray.vue';
-import { arrayItems, initializeArrays, withinPath } from '../core/fieldArrays.js';
+import QSchemaArray from "./QSchemaArray.vue";
+import {
+  arrayItems,
+  initializeArrays,
+  withinPath,
+} from "../core/fieldArrays.js";
 
 const props = defineProps<{
   modelValue?: Input;
@@ -53,14 +57,14 @@ const props = defineProps<{
   validateOn?: "blur" | "change" | "submit";
   submitAction?: (
     values: Output,
-    context: SubmitContext,
+    context: SubmitContext<Input>,
   ) => unknown | Promise<unknown>;
 }>();
 const emit = defineEmits<{
   "update:modelValue": [values: Input];
   change: [values: Input];
   "field-change": [event: { path: string; value: unknown; values: Input }];
-  submit: [values: Output, context: SubmitContext];
+  submit: [values: Output, context: SubmitContext<Input>];
   invalid: [issues: readonly ValidationIssue[]];
   reset: [values: Input];
   error: [error: unknown];
@@ -77,7 +81,10 @@ const message = (issue: ValidationIssue) =>
   (issue.messageKey
     ? translate(issue.messageKey, issue.params)
     : issue.message);
-const starting = initializeArrays(props.modelValue ?? props.initialValues ?? ({} as Input), props.arrays ?? []);
+const starting = initializeArrays(
+  props.modelValue ?? props.initialValues ?? ({} as Input),
+  props.arrays ?? [],
+);
 const initialValues = applyDefaults(
   starting,
   normalizeForm(props.schema, props.fields, starting, props.arrays),
@@ -120,9 +127,20 @@ const visible = computed(() =>
       : !field.hidden,
   ),
 );
-const visibleArrays = computed(() => (props.arrays ?? []).filter((array) => !(typeof array.hidden === 'function'
-  ? array.hidden({ values: engine.values.value, getValue: (path) => getPath(engine.values.value, path) }) : array.hidden)));
-const flatFields = computed(() => visible.value.filter((field) => !field.arrayPath));
+const visibleArrays = computed(() =>
+  (props.arrays ?? []).filter(
+    (array) =>
+      !(typeof array.hidden === "function"
+        ? array.hidden({
+            values: engine.values.value,
+            getValue: (path) => getPath(engine.values.value, path),
+          })
+        : array.hidden),
+  ),
+);
+const flatFields = computed(() =>
+  visible.value.filter((field) => !field.arrayPath),
+);
 const groups = computed(() => {
   const sections = props.sections ?? [];
   const keys = new Set(sections.map((section) => section.key));
@@ -132,12 +150,16 @@ const groups = computed(() => {
       fields: flatFields.value.filter(
         (field) => !field.section || !keys.has(field.section),
       ),
-      arrays: visibleArrays.value.filter((array) => !array.section || !keys.has(array.section)),
+      arrays: visibleArrays.value.filter(
+        (array) => !array.section || !keys.has(array.section),
+      ),
     },
     ...sections.map((section) => ({
       section,
       fields: flatFields.value.filter((field) => field.section === section.key),
-      arrays: visibleArrays.value.filter((array) => array.section === section.key),
+      arrays: visibleArrays.value.filter(
+        (array) => array.section === section.key,
+      ),
     })),
   ].filter((group) => group.fields.length || group.arrays.length);
 });
@@ -155,7 +177,9 @@ watch(
     for (const field of fields.value)
       if (field.section && errors[field.path]?.length)
         open.value[field.section] = true;
-    for (const array of props.arrays ?? []) if (array.section && errors[array.path]?.length) open.value[array.section] = true;
+    for (const array of props.arrays ?? [])
+      if (array.section && errors[array.path]?.length)
+        open.value[array.section] = true;
   },
   { deep: true },
 );
@@ -189,22 +213,48 @@ const blur = (path: string) => {
 };
 const arrayProps = (definition: FieldArrayDefinition<Input>) => ({
   definition,
-  rows: arrayItems(engine.values.value, definition.path).map((_item, index) => ({
-    key: engine.arrayKey(definition.path, index), index,
-    fields: visible.value.filter((field) => field.arrayPath === definition.path && field.arrayIndex === index),
-  })),
-  values: engine.values.value, errors: engine.state.errors.value,
-  registry, translate, disabled: blocked.value, readonly: props.readonly, direction: props.direction, defaultProps: defaults.value,
+  rows: arrayItems(engine.values.value, definition.path).map(
+    (_item, index) => ({
+      key: engine.arrayKey(definition.path, index),
+      index,
+      fields: visible.value.filter(
+        (field) =>
+          field.arrayPath === definition.path && field.arrayIndex === index,
+      ),
+    }),
+  ),
+  values: engine.values.value,
+  errors: engine.state.errors.value,
+  registry,
+  translate,
+  disabled: blocked.value,
+  readonly: props.readonly,
+  direction: props.direction,
+  defaultProps: defaults.value,
 });
 const afterArrayChange = (path: string, operation: () => boolean) => {
-  const revalidate = Object.keys(engine.state.errors.value).some((key) => withinPath(key, path));
+  const revalidate = Object.keys(engine.state.errors.value).some((key) =>
+    withinPath(key, path),
+  );
   const changed = operation();
-  if (changed && (props.validateOn === 'change' || (props.validateOn !== 'submit' && revalidate))) void engine.validateFields([path]).catch(report);
+  if (
+    changed &&
+    (props.validateOn === "change" ||
+      (props.validateOn !== "submit" && revalidate))
+  )
+    void engine.validateFields([path]).catch(report);
   return changed;
 };
-const appendArrayItem = (path: FieldArrayPath<Input>, value?: unknown) => afterArrayChange(path, () => engine.appendArrayItem(path, value));
-const removeArrayItem = (path: FieldArrayPath<Input>, index: number) => afterArrayChange(path, () => engine.removeArrayItem(path, index));
-const moveArrayItem = (path: FieldArrayPath<Input>, from: number, to: number) => afterArrayChange(path, () => engine.moveArrayItem(path, from, to));
+const appendArrayItem = (path: FieldArrayPath<Input>, value?: unknown) =>
+  afterArrayChange(path, () => engine.appendArrayItem(path, value));
+const removeArrayItem = (path: FieldArrayPath<Input>, index: number) =>
+  afterArrayChange(path, () => engine.removeArrayItem(path, index));
+const moveArrayItem = (path: FieldArrayPath<Input>, from: number, to: number) =>
+  afterArrayChange(path, () => engine.moveArrayItem(path, from, to));
+// Slot callbacks can be used directly as button event handlers or with values.
+const resetFromSlot = (next?: Input | Event) => engine.reset(
+  typeof Event !== 'undefined' && next instanceof Event ? undefined : next as Input | undefined,
+);
 const slotState = computed(() => ({
   values: engine.values.value,
   errors: engine.state.errors.value,
@@ -212,19 +262,35 @@ const slotState = computed(() => ({
   dirty: engine.state.dirty.value,
   submitting: engine.submitting.value,
   validating: engine.validating.value,
-  reset: engine.reset,
+  loadingValues: engine.loadingValues.value,
+  loadError: engine.loadError.value,
+  reset: resetFromSlot,
   submit,
+  setValues: engine.setValues,
+  loadValues: engine.loadValues,
+  cancelLoad: engine.cancelLoad,
+  applyServerResponse: engine.applyServerResponse,
+  setFieldValue: (path: FieldPath<Input>, value: unknown) => engine.setFieldValue(path, value),
   validateFields: engine.validateFields,
-  appendArrayItem, removeArrayItem, moveArrayItem,
+  appendArrayItem,
+  removeArrayItem,
+  moveArrayItem,
 }));
 defineExpose({
+  get loadingValues() { return engine.loadingValues.value },
   validate,
   submit,
   reset: engine.reset,
   setErrors: engine.setErrors,
   clearErrors: engine.clearErrors,
+  setValues: engine.setValues,
+  loadValues: engine.loadValues,
+  cancelLoad: engine.cancelLoad,
+  applyServerResponse: engine.applyServerResponse,
   validateFields: engine.validateFields,
-  appendArrayItem, removeArrayItem, moveArrayItem,
+  appendArrayItem,
+  removeArrayItem,
+  moveArrayItem,
   setFieldValue: (path: FieldPath<Input>, value: unknown) =>
     engine.setFieldValue(path, value),
 });
@@ -232,10 +298,10 @@ defineExpose({
 
 <template>
   <QForm
-    :aria-busy="Boolean(busy)"
+    :aria-busy="Boolean(busy || engine.loadingValues.value)"
     novalidate
     @submit="submit().catch(report)"
-    @reset="engine.reset"
+    @reset="() => engine.reset()"
   >
     <div
       v-if="engine.state.errors.value['']?.length"
@@ -268,8 +334,30 @@ defineExpose({
               <slot :name="`field:${field.path}`" v-bind="scope" />
             </template>
           </QSchemaField>
-          <QSchemaArray v-for="array in group.arrays" :key="array.path" v-bind="arrayProps(array)" @change="change" @blur="blur" @error="report" @append="(path) => appendArrayItem(path as FieldArrayPath<Input>)" @remove="(path, index) => removeArrayItem(path as FieldArrayPath<Input>, index)" @move="(path, from, to) => moveArrayItem(path as FieldArrayPath<Input>, from, to)">
-            <template v-for="name in Object.keys($slots).filter((name) => name.startsWith('field:'))" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+          <QSchemaArray
+            v-for="array in group.arrays"
+            :key="array.path"
+            v-bind="arrayProps(array)"
+            @change="change"
+            @blur="blur"
+            @error="report"
+            @append="(path) => appendArrayItem(path as FieldArrayPath<Input>)"
+            @remove="
+              (path, index) =>
+                removeArrayItem(path as FieldArrayPath<Input>, index)
+            "
+            @move="
+              (path, from, to) =>
+                moveArrayItem(path as FieldArrayPath<Input>, from, to)
+            "
+          >
+            <template
+              v-for="name in Object.keys($slots).filter((name) =>
+                name.startsWith('field:'),
+              )"
+              #[name]="scope"
+              ><slot :name="name" v-bind="scope"
+            /></template>
           </QSchemaArray>
         </div>
       </QExpansionItem>
@@ -286,8 +374,30 @@ defineExpose({
             <slot :name="`field:${field.path}`" v-bind="scope" />
           </template>
         </QSchemaField>
-        <QSchemaArray v-for="array in group.arrays" :key="array.path" v-bind="arrayProps(array)" @change="change" @blur="blur" @error="report" @append="(path) => appendArrayItem(path as FieldArrayPath<Input>)" @remove="(path, index) => removeArrayItem(path as FieldArrayPath<Input>, index)" @move="(path, from, to) => moveArrayItem(path as FieldArrayPath<Input>, from, to)">
-          <template v-for="name in Object.keys($slots).filter((name) => name.startsWith('field:'))" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+        <QSchemaArray
+          v-for="array in group.arrays"
+          :key="array.path"
+          v-bind="arrayProps(array)"
+          @change="change"
+          @blur="blur"
+          @error="report"
+          @append="(path) => appendArrayItem(path as FieldArrayPath<Input>)"
+          @remove="
+            (path, index) =>
+              removeArrayItem(path as FieldArrayPath<Input>, index)
+          "
+          @move="
+            (path, from, to) =>
+              moveArrayItem(path as FieldArrayPath<Input>, from, to)
+          "
+        >
+          <template
+            v-for="name in Object.keys($slots).filter((name) =>
+              name.startsWith('field:'),
+            )"
+            #[name]="scope"
+            ><slot :name="name" v-bind="scope"
+          /></template>
         </QSchemaArray>
       </div>
     </template>

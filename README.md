@@ -1,12 +1,14 @@
 # QSchemaForm
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](https://github.com/fatdarkness6/QSchemaForm/tree/v0.2.0)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/fatdarkness6/QSchemaForm/tree/v0.3.0)
 [![CI](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fatdarkness6/QSchemaForm/blob/main/LICENSE)
 
 Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized forms from Yup, Zod, or Standard Schema validators without wiring every input by hand.
 
-**Package:** `q-schema-form` · **Version:** `0.2.0` · **npm status:** not published yet.
+**Package:** `q-schema-form` · **Version:** `0.3.0` · **npm status:** not published yet.
+
+**New in 0.3.0:** load and update server values across all field types, search remote dropdowns, map server validation errors, and compute field props reactively. The Migration demo and `q-schema-form/compat` entry have been removed; use `QSchemaForm` directly.
 
 - Typed field configuration and nested form data.
 - Zod, Yup, and other Standard Schema-compatible validators.
@@ -15,16 +17,17 @@ Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized for
 - Date/time, radio, file, slider/range, rating and rich-text inputs.
 - Reusable validation helpers, repeatable groups and forms with multiple steps.
 - Translation, RTL layouts, and an optional international phone input.
+- Server-loaded values, server errors, searchable dropdowns and reactive field props.
 - ESM exports, TypeScript declarations, and SSR support.
 
-[Usage](#minimal-form) · [Phone input](#international-phone-field-optional) · [Changelog](https://github.com/fatdarkness6/QSchemaForm/blob/main/CHANGELOG.md) · [Contributing](https://github.com/fatdarkness6/QSchemaForm/blob/main/CONTRIBUTING.md) · [Issues](https://github.com/fatdarkness6/QSchemaForm/issues)
+[Usage](#minimal-form) · [Server values](#server-values-and-responses) · [Dropdowns](#dropdowns-and-async-options) · [Phone input](#international-phone-field-optional) · [Changelog](https://github.com/fatdarkness6/QSchemaForm/blob/main/CHANGELOG.md) · [Contributing](https://github.com/fatdarkness6/QSchemaForm/blob/main/CONTRIBUTING.md) · [Issues](https://github.com/fatdarkness6/QSchemaForm/issues)
 
 ## Installation
 
 Use this in an existing Vue 3 + Quasar application. Until the first npm publication, install the versioned GitHub source:
 
 ```sh
-npm install github:fatdarkness6/QSchemaForm#v0.2.0 zod
+npm install github:fatdarkness6/QSchemaForm#v0.3.0 zod
 ```
 
 The GitHub install builds the library using its `prepare` script, so it needs a supported Node version and installs the build tools temporarily. For local testing, you can also install the tarball produced by `npm pack`.
@@ -113,11 +116,10 @@ Yup uses its public `describe({ value })` API to resolve metadata and conditions
 | `q-schema-form/yup` | `yupAdapter`, `describeYup` |
 | `q-schema-form/zod` | `zodAdapter` |
 | `q-schema-form/vee-validate` | `veeValidateAdapter` |
-| `q-schema-form/compat` | `FormBuilder` compatibility component |
 | `q-schema-form/phone` | `QPhoneField`, `isValidPhoneNumber`, `PhoneFieldProps`, `CountryCode` |
 | `q-schema-form/wizard` | `QSchemaWizard`, `StepDefinition`, `WizardActions` (also available from the root) |
 
-Valibot, ArkType and other compatible validators can use the Standard Schema path with explicit fields. Dedicated introspection adapters for those libraries are not included in v0.2.
+Valibot, ArkType and other compatible validators can use the Standard Schema path with explicit fields. Dedicated introspection adapters for those libraries are not included in v0.3.
 
 ## Field configuration
 
@@ -142,7 +144,7 @@ const fields = defineFields<{
 | --- | --- |
 | `type` | Built-in or registered field type; defaults to `input` |
 | `label`, `placeholder`, `hint` | Text or translation keys |
-| `props` | Typed Quasar/component-specific props |
+| `props` | Typed Quasar/component props, or `(context) => props` for reactive settings |
 | `defaultValue` | Initial fallback when a value is `undefined`; does not replace `null`, `false`, `0`, or `''` |
 | `hidden`, `disabled`, `readonly` | Boolean or `({ values, getValue }) => boolean` |
 | `class` | Layout classes; defaults to `col-12` |
@@ -353,7 +355,7 @@ Override one field with a named slot:
 </template>
 ```
 
-The default slot exposes `values`, `errors`, `touched`, `dirty`, `submitting`, `validating`, `reset`, `submit`, `validateFields`, `appendArrayItem`, `removeArrayItem`, and `moveArrayItem`.
+The default slot exposes `values`, `errors`, `touched`, `dirty`, `submitting`, `validating`, `loadingValues`, `loadError`, `reset`, `submit`, `setFieldValue`, `setValues`, `loadValues`, `cancelLoad`, `applyServerResponse`, `validateFields`, `appendArrayItem`, `removeArrayItem`, and `moveArrayItem`. Field slots also expose `reloadOptions()` for retrying option requests.
 
 ## International phone field (optional)
 
@@ -396,21 +398,93 @@ Numbers display country-aware spaces, for example `912 123 4567` beside Iran `+9
 
 Phone-specific props are `defaultCountry` (ISO region, defaults to `US`), `locale` (country names, defaults to `en`), `countryCodeLabel`, `internationalLabel`, and `noResultsLabel`. Standard input props such as `outlined`, `dense`, `placeholder`, `disable`, and `readonly` are supported. Numbers remain left to right in RTL forms. Use translated labels and `locale: 'fa'` for Persian country names. No additional CSS import is required. The root package never imports the phone component or its metadata; apps only using other fields do not need this optional dependency.
 
-## Async options
+## Dropdowns and async options
 
 ```ts
 city: {
   type: 'select',
   dependencies: ['country'],
-  options: async ({ values }, signal) => {
-    const response = await fetch(`/api/cities?country=${encodeURIComponent(String(values.country))}`, { signal })
+  props: { useInput: true, inputDebounce: 250, clearable: true },
+  options: async ({ values, query = '' }, signal) => {
+    const response = await fetch(`/api/cities?country=${encodeURIComponent(String(values.country))}&search=${encodeURIComponent(query)}`, { signal })
     if (!response.ok) throw new Error('Unable to load cities')
-    return response.json()
+    const cities: { id: string; name: string }[] = await response.json()
+    return cities.map((city) => ({ label: city.name, value: city.id }))
   },
 }
 ```
 
 The renderer displays loading state, aborts superseded requests, discards stale responses, and emits `error` if loading fails. Changing options does not automatically clear the selected value; validation and application logic should decide whether it remains valid.
+
+`select` is the dropdown type; no extra registration is needed. With `useInput: true` and an option loader, search text arrives in `context.query`; `inputDebounce` uses Quasar's native debounce. Loaders run at mount and when declared dependencies change. Set `dependencies: []` for an independent list. Map server data into strings/numbers or `{ label, value, disable? }` objects.
+
+Reopening or retyping retries a failed search. Custom field slots receive `reloadOptions()` for an explicit retry button. Selected values stay in the model while options load. If a country change should clear its city, do that explicitly in your `field-change` handler.
+
+## Server values and responses
+
+Ordinary reactive `v-model` updates already work across every field. The shared APIs below add batched patches, asynchronous loading, reset baselines and server errors. They work on both form and wizard refs and in their default slots.
+
+```ts
+import { ref } from 'vue'
+import type { FormActions, SubmitContext } from 'q-schema-form'
+
+type Profile = { name: string; email: string; active: boolean }
+const values = ref<Profile>({ name: '', email: '', active: false })
+const form = ref<FormActions<Profile>>()
+// <QSchemaForm ref="form" v-model="values" :fields="fields" :submit-action="save" />
+
+async function loadProfile(id: string) {
+  await form.value!.loadValues(async ({ signal }) => {
+    const response = await fetch(`/api/profiles/${encodeURIComponent(id)}`, { signal })
+    if (!response.ok) throw new Error('Unable to load profile')
+    const profile: Profile = await response.json()
+    return profile // Map your API's data to the form model here.
+  })
+}
+
+async function save(input: Profile, { applyServerResponse }: SubmitContext<Profile>) {
+  const response = await fetch('/api/profiles', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  const result = await response.json()
+  if (!response.ok && response.status !== 422) throw new Error('Unable to save profile')
+  // Example API response: { profile?: Profile, fieldErrors?: { email: string } }.
+  applyServerResponse({ values: result.profile, errors: result.fieldErrors ?? {} }, { asInitial: response.ok })
+}
+```
+
+The URLs/response shapes are examples. Applications own fetching, authentication, response mapping and when to load. The package does not automatically interpret a `submitAction` return value.
+
+| Method | Behavior |
+| --- | --- |
+| `setValues(patch, options?)` | Merges nested objects, replaces arrays/non-plain values, emits one model update, and does not automatically validate |
+| `loadValues(loader, options?)` | Loads a patch; defaults to `{ keepDirtyValues: true, asInitial: true }` |
+| `cancelLoad()` | Aborts the value request and ignores its late result |
+| `applyServerResponse({ values?, errors? }, options?)` | Applies mapped values and replaces supplied errors; `''` represents a form-level message |
+| `reset(values?)` | Restores the baseline; an explicit complete model establishes a new baseline |
+
+`setValues` and `applyServerResponse` default to overwriting supplied fields without changing the baseline. Set `keepDirtyValues: true` to preserve values that differ from the baseline, and `asInitial: true` to make incoming data the new baseline. Nested objects merge per property; arrays are preserved/replaced as a whole because index matching cannot identify records. Replaced repeatable arrays receive new row identities and their indexed errors/touched state is cleared.
+
+During `loadValues`, fields remain editable and submission/wizard navigation is blocked. Edits made before or during the request are preserved by default and remain dirty relative to the server baseline. Reset then restores server values. To switch records and discard edits, pass `{ keepDirtyValues: false }`. Fields omitted from a partial response keep their previous baseline.
+
+The latest load wins. New loads, reset, manual `setValues`/`applyServerResponse`, external model replacement and unmount abort old requests and ignore late results. `loadValues` resolves `true` when applied, `false` when cancelled/superseded, and rejects unexpected failures. Use slot `loadingValues`/`loadError` for feedback and retry; refs also expose readonly `loadingValues`. Submission context mutation methods ignore late responses after newer edits; use that context inside `submitAction` for this protection.
+
+Server error maps accept dotted/indexed paths and string or string-array messages. Malformed maps and unsafe patch keys are rejected before values apply. Use field model types: numbers, booleans, date strings, selection values and `File` instances where appropriate; a server filename does not represent a selected browser file.
+
+## Reactive field props
+
+Every built-in/custom field accepts synchronous `props(context)` for settings based on current values:
+
+```ts
+age: { type: 'number', props: ({ values }) => ({ min: values.isAdult ? 18 : 0 }) },
+biography: { type: 'textarea', props: ({ values }) => ({
+  rows: values.active ? 4 : 2,
+  placeholder: values.active ? 'Account biography' : 'Optional notes',
+}) },
+city: { type: 'select', props: ({ values }) => ({ disable: !values.country }) },
+```
+
+Callbacks receive `values` and `getValue(path)` and update reactively after edits/server loads. Inferred schema defaults merge with explicit props; engine-owned models, labels and errors retain precedence. For remote settings, load into reactive application state and read that state in the callback. Define validation constraints in a schema or validator: the input's `min` prop alone does not add a validation rule.
 
 ## Validation, submission and reset
 
@@ -427,22 +501,22 @@ Input state and validated output are separate. Submit receives transformed/cast 
 </QSchemaForm>
 ```
 
-Use `submitAction(values, { reset, setErrors })` for asynchronous persistence. The library awaits its promise, blocks duplicate submission, and disables fields until it settles. A successful `submit` event follows completion. Vue does not await event listeners; `@submit` alone only observes successful validation, so control `loading` yourself if you save from that event. UI-triggered thrown errors emit `error`; exposed methods reject so callers can handle failures.
+Use `submitAction(values, { reset, setErrors, setValues, applyServerResponse })` for asynchronous persistence. The library awaits its promise, blocks duplicate submission, and disables fields until it settles. A `submit` event follows successful client validation and callback completion; map server validation failures explicitly with the supplied context. Vue does not await event listeners; `@submit` alone only observes validation, so control `loading` yourself if you save from that event. UI-triggered thrown errors emit `error`; exposed methods reject so callers can handle failures.
 
 | Event | Payload |
 | --- | --- |
 | `update:modelValue`, `change` | Current editable values after an internal change or reset |
 | `field-change` | `{ path, value, values }` |
-| `submit` | Validated output, then `{ reset, setErrors }` |
+| `submit` | Validated output, then `{ reset, setErrors, setValues, applyServerResponse }` |
 | `invalid` | Validation issues |
-| `reset` | Restored initial values |
+| `reset` | Values restored from the current reset baseline |
 | `error` | Unexpected validation/submission/options error |
 
 Exposed methods: `validate()`, `submit()`, `reset()`, `setErrors(map)`, `clearErrors()`, and `setFieldValue(path, value)`. `validate()` returns a discriminated `{ valid, value | issues }` result. `submit()` returns that result, or `undefined` when disabled, already submitting, or superseded by changed values.
 
 Also exposed: array actions documented above, and `validateFields(paths)`, which validates selected paths and descendants, updates only their errors, and returns a boolean. The full schema still runs for cross-field context; unrelated issues do not block the selected scope. Custom validators run only inside that scope.
 
-Reset restores the mount-time snapshot (including defaults), clears errors/touched state, and emits the restored model. Later external model changes do not redefine that snapshot. Remount with a new `key` for another record. Model takes precedence over `initialValues`. Defaults are applied once at creation and appear in the next emitted model; parent values are not mutated on mount. Schema prop changes are observed; invalidated async results are ignored.
+Reset restores the current baseline, clears errors/touched state, and emits the restored model. The baseline starts as the mount-time snapshot (including defaults); `reset(values)`, `asInitial: true` and default `loadValues` establish a new baseline. Plain external model changes do not redefine it. Model takes precedence over `initialValues`. Defaults apply once at creation; parent values are not mutated on mount. Schema prop changes are observed and invalidate async validation.
 
 Use serializable plain object/array data and `Date` values. Non-plain instances are retained by reference; mutation inside class instances/Maps/Sets is outside the dirty-tracking contract.
 
@@ -454,19 +528,7 @@ Use serializable plain object/array data and `Date` values. Non-plain instances 
 
 **Upgrading from 0.1.x:** custom state adapters must implement `replaceTouched(map)` to replace the complete touched map, including clearing omitted paths. Repeatable groups use this when indexes change. The bundled native and VeeValidate adapters already implement it. No change is needed when using either bundled adapter.
 
-## Migration from FormBuilder.vue
-
-Change the import first:
-
-```ts
-import { FormBuilder } from 'q-schema-form/compat'
-```
-
-Keep `schema`, `initialValues`, `sectionStructure`, `onSubmit(values, resetForm)`, `customClass`, `inputProps`, `direction`, and the default slot. Install Yup and VeeValidate. The compatibility component uses the new engine and optional VeeValidate state adapter, retains the metadata section types (`input`, `singleInput`, `textarea`), and opens invalid sections automatically.
-
-The migration fixes field direction metadata, numeric value handling, inconsistent shared textarea props, and awaiting an async submit callback. Supported primitive types can now receive inferred controls. These are intentional improvements; the original file remains available for comparison.
-
-Then migrate progressively to `QSchemaForm`: move UI choices to `fields`, use `v-model`, replace callback reset arguments with the submit context/default slot, and choose a state adapter. There is no need to migrate validators at the same time.
+**Upgrading from 0.2.0:** `q-schema-form/compat` and its `FormBuilder` component are removed. Use `QSchemaForm` with the documented fields, schema adapters and `submitAction` API. Yup and VeeValidate integrations remain available through their dedicated entries. Existing forms using `QSchemaForm` can adopt the new server-value helpers as needed.
 
 ## SSR and Nuxt
 
@@ -484,23 +546,23 @@ pnpm check
 
 `pnpm dev` first builds the library, then opens a Vite server at localhost. The playground imports built package exports, never internal source modules. Rebuild with `pnpm build` after changing library source; playground-only changes use Vite HMR.
 
-Open the printed local URL and try **Inputs + validation**, **Repeatable groups**, and **Wizard** for the 0.2.0 additions. The username availability demo simulates a server locally; no backend is required.
+Open the printed local URL and try **Server + dynamic values**, **Inputs + validation**, **Repeatable groups**, and **Wizard**. Server/profile/search/error demos run locally with simulated requests; no backend is required.
 
-Individual checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm build:playground`, and `pnpm check:package`. Build before typechecking a clean checkout because playground imports resolve through `dist`. The package check verifies export targets and bundles consumer entry points to detect optional-adapter leaks and lost tree shaking. `pnpm test:watch` runs Vitest interactively. The root `FormBuilder.vue` is tested with a small host-compatibility transform and deliberately excluded from strict library compilation; all new code is strict TypeScript.
+Individual checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm build:playground`, and `pnpm check:package`. Build before typechecking a clean checkout because playground imports resolve through `dist`. The package check verifies export targets and bundles consumer entry points to detect optional-adapter leaks and lost tree shaking. `pnpm test:watch` runs Vitest interactively. The root `FormBuilder.vue` is retained only as an original source reference and excluded from the package and checks; library code is strict TypeScript.
 
-Tests cover the original behavior, adapters, rendered Quasar fields, synchronization, submit/reset, localization, custom registration, async races, conditional fields and both state implementations. Consumer smoke fixtures under `tests/consumer` can verify installed tarballs and SSR.
+Tests cover adapters, rendered Quasar fields, synchronization, submit/reset, localization, custom registration, async races, conditional fields and both state implementations. Consumer smoke fixtures under `tests/consumer` can verify installed tarballs and SSR.
 
 ```sh
 npm pack --dry-run
 npm pack
 # In a separate directory, install the tarball plus chosen peers:
-npm install /path/to/q-schema-form-0.2.0.tgz vue quasar
+npm install /path/to/q-schema-form-0.3.0.tgz vue quasar
 node /path/to/repo/tests/consumer/smoke.mjs .
 # Add yup, zod, vee-validate and libphonenumber-js to check every integration:
 node /path/to/repo/tests/consumer/smoke.mjs . --adapters --phone
 ```
 
-Submit focused changes with a behavioral test, run the complete checks, and keep optional imports out of the root dependency graph. Published artifacts are restricted to `dist`, README, CHANGELOG, LICENSE and package metadata. Builds are ESM-only; CommonJS output is not currently provided. Source maps contain source text, but the playground, test harness, legacy reference, lockfile, and installed dependencies are not packaged.
+Submit focused changes with a behavioral test, run the complete checks, and keep optional imports out of the root dependency graph. Published artifacts are restricted to `dist`, README, CHANGELOG, LICENSE and package metadata. Builds are ESM-only; CommonJS output is not currently provided. Source maps contain source text, but the playground, test harness, original source reference, lockfile, and installed dependencies are not packaged.
 
 GitHub Actions runs the full checks on pushes and pull requests to `main`. See [CONTRIBUTING.md](https://github.com/fatdarkness6/QSchemaForm/blob/main/CONTRIBUTING.md) for the folder structure and development workflow, and [RELEASING.md](https://github.com/fatdarkness6/QSchemaForm/blob/main/RELEASING.md) for versioning and the separate npm publication steps. No development script publishes the package.
 

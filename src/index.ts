@@ -1,5 +1,5 @@
 /** Package version. Validator integrations are exposed through separate subpaths. */
-export const version = "0.2.0";
+export const version = "0.3.0";
 export { default as QSchemaForm } from "./components/QSchemaForm.vue";
 export { default as QSchemaWizard } from './components/QSchemaWizard.vue';
 export { createQSchemaForm } from "./core/plugin.js";

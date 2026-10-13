@@ -1,7 +1,6 @@
 import { yupAdapter } from 'q-schema-form/yup'
 import { zodAdapter } from 'q-schema-form/zod'
 import { veeValidateAdapter } from 'q-schema-form/vee-validate'
-import { FormBuilder } from 'q-schema-form/compat'
 import { QPhoneField, isValidPhoneNumber } from 'q-schema-form/phone'
 import type { SchemaAdapter } from 'q-schema-form'
 import * as yup from 'yup'
@@ -12,6 +11,5 @@ const fromZod: SchemaAdapter<{ name: string }> = zodAdapter(z.object({ name: z.s
 void fromYup
 void fromZod
 void veeValidateAdapter
-void FormBuilder
 void QPhoneField
 void isValidPhoneNumber

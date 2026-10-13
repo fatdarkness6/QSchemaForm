@@ -12,7 +12,9 @@ const schema = zodAdapter(
     email: z.string().email("invalidEmail"),
     age: z.number().min(18, "Minimum age is 18"),
     role: z.enum(["user", "admin"]),
-    phone: z.string().refine((value) => isValidPhoneNumber(value), "invalidPhone"),
+    phone: z
+      .string()
+      .refine((value) => isValidPhoneNumber(value), "invalidPhone"),
     active: z.boolean(),
     notifications: z.boolean(),
     profile: z.object({

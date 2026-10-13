@@ -1,10 +1,11 @@
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import type { ErrorMap, FieldArrayDefinition, FieldDefinition, FormStateAdapter, FormValues, SchemaSource, SubmitContext, ValidationIssue, ValidationResult } from '../types/index.js'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import type { DeepPartial, ErrorMap, FieldArrayDefinition, FieldDefinition, FormStateAdapter, FormValues, SchemaSource, ServerResponse, SetValuesOptions, SubmitContext, ValidationIssue, ValidationResult, ValueLoader } from '../types/index.js'
 import { useFormState } from '../composables/useFormState.js'
 import { resolveSchema } from '../adapters/standard-schema/index.js'
 import { cloneValue, equalValues } from '../utils/values.js'
 import { getPath, pathSegments, setPath } from '../utils/paths.js'
-import { arrayItems, remapArrayState, withinPath } from './fieldArrays.js'
+import { arrayItems, initializeArrays, remapArrayState, withinPath } from './fieldArrays.js'
+import { assertValuePatch, dirtyValuePaths, mergeValuePatch, normalizeServerErrors } from './dynamicValues.js'
 
 interface EngineOptions<I extends FormValues, O> {
   initialValues: I
@@ -15,10 +16,10 @@ interface EngineOptions<I extends FormValues, O> {
   stateAdapter?: FormStateAdapter
   message: (issue: ValidationIssue) => string
   update: (values: I, path?: string, value?: unknown) => void
-  valid: (values: O, context: SubmitContext) => void
+  valid: (values: O, context: SubmitContext<I>) => void
   invalid: (issues: readonly ValidationIssue[]) => void
   reset: (values: I) => void
-  submitAction: () => ((values: O, context: SubmitContext) => unknown | Promise<unknown>) | undefined
+  submitAction: () => ((values: O, context: SubmitContext<I>) => unknown | Promise<unknown>) | undefined
   disabled: () => boolean
 }
 
@@ -27,6 +28,11 @@ export function useFormEngine<I extends FormValues, O>(options: EngineOptions<I,
   const values = computed(() => state.values.value as I)
   const submitting = ref(false)
   const validating = ref(false)
+  const loadingValues = ref(false)
+  const loadError = shallowRef<unknown>()
+  let baseline = cloneValue(options.initialValues)
+  let loadId = 0
+  let loadController: AbortController | undefined
   let revision = 0
   let validationId = 0
   let disposed = false
@@ -34,24 +40,95 @@ export function useFormEngine<I extends FormValues, O>(options: EngineOptions<I,
   const rowKeys = new Map<string, string[]>()
   let rowId = 0
   const invalidate = () => { revision++; validationId++; validationController?.abort(); validating.value = false }
-  onBeforeUnmount(() => { disposed = true; invalidate() })
+  const cancelLoad = () => { loadId++; loadController?.abort(); loadController = undefined; loadingValues.value = false }
+  onBeforeUnmount(() => { disposed = true; invalidate(); cancelLoad() })
   watch(options.model, (next) => {
-    if (next && !equalValues(next, state.values.value)) { invalidate(); state.replaceValues(next) }
+    if (next && !equalValues(next, state.values.value)) {
+      invalidate(); cancelLoad();
+      const previous = values.value
+      state.replaceValues(next)
+      clearReplacedArrayState(previous, next)
+    }
   }, { deep: true, flush: 'sync' })
   watch(options.schema, invalidate, { flush: 'sync' })
 
   const clearErrors = () => state.setErrors({})
   const setErrors = (errors: Record<string, string | readonly string[]>) => {
-    state.setErrors(Object.fromEntries(Object.entries(errors).map(([path, message]) => [pathSegments(path).join('.'), typeof message === 'string' ? [message] : message])))
-  }
-  const reset = () => {
+    const normalized = normalizeServerErrors(errors)
     invalidate()
+    state.setErrors(normalized)
+  }
+  const reset = (next?: I) => {
+    if (next !== undefined) { assertValuePatch(next); baseline = cloneValue(initializeArrays(next, options.arrays?.() ?? [])) }
+    invalidate()
+    cancelLoad()
+    loadError.value = undefined
     rowKeys.clear()
-    state.reset()
+    state.reset(baseline)
     options.update(cloneValue(values.value))
     options.reset(cloneValue(values.value))
   }
-  const context: SubmitContext = { reset, setErrors }
+  function clearReplacedArrayState(previous: I, next: I) {
+    const replaced = (options.arrays?.() ?? []).filter((array) => !equalValues(getPath(previous, array.path), getPath(next, array.path))).map((array) => array.path)
+    if (!replaced.length) return
+    for (const path of replaced) rowKeys.delete(path)
+    state.setErrors(Object.fromEntries(Object.entries(state.errors.value).filter(([key]) => !replaced.some((path) => withinPath(key, path)))))
+    state.replaceTouched(Object.fromEntries(Object.entries(state.touched.value).filter(([key]) => !replaced.some((path) => withinPath(key, path)))))
+  }
+  function applyValues(patch: DeepPartial<I>, settings: SetValuesOptions = {}) {
+    assertValuePatch(patch)
+    const previous = cloneValue(values.value)
+    const dirtyPaths = settings.keepDirtyValues ? dirtyValuePaths(previous, baseline) : []
+    const next = initializeArrays(mergeValuePatch(previous, patch, baseline, settings.keepDirtyValues), options.arrays?.() ?? [])
+    // Prepare both snapshots before changing state so malformed data cannot partly apply.
+    const nextBaseline = settings.asInitial ? initializeArrays(mergeValuePatch(baseline, patch), options.arrays?.() ?? []) : baseline
+    const errors = state.errors.value
+    const touched = state.touched.value
+    invalidate()
+    if (settings.asInitial) {
+      baseline = cloneValue(nextBaseline)
+      state.reset(baseline)
+      const preserved = (path: string) => dirtyPaths.some((dirty) => withinPath(path, dirty))
+      state.setErrors(Object.fromEntries(Object.entries(errors).filter(([path]) => preserved(path))))
+      state.replaceTouched(Object.fromEntries(Object.entries(touched).filter(([path]) => preserved(path))))
+    }
+    state.replaceValues(next)
+    clearReplacedArrayState(previous, next)
+    options.update(cloneValue(values.value))
+  }
+  function setValues(patch: DeepPartial<I>, settings?: SetValuesOptions) {
+    assertValuePatch(patch)
+    cancelLoad()
+    loadError.value = undefined
+    applyValues(patch, settings)
+  }
+  function applyServerResponse(response: ServerResponse<I>, settings?: SetValuesOptions) {
+    if (response.values !== undefined) assertValuePatch(response.values)
+    // Validate all server paths first; reject malformed responses without partial updates.
+    const errors = response.errors === undefined ? undefined : normalizeServerErrors(response.errors)
+    cancelLoad()
+    if (response.values !== undefined) setValues(response.values, settings)
+    if (errors !== undefined) setErrors(errors)
+  }
+  async function loadValues(loader: ValueLoader<I>, settings: SetValuesOptions = {}) {
+    cancelLoad()
+    const id = loadId
+    const controller = new AbortController()
+    loadController = controller
+    loadError.value = undefined
+    loadingValues.value = true
+    try {
+      const patch = await loader({ values: cloneValue(values.value), signal: controller.signal })
+      if (id !== loadId || controller.signal.aborted || disposed) return false
+      applyValues(patch, { keepDirtyValues: true, asInitial: true, ...settings })
+      return true
+    } catch (error) {
+      if (id !== loadId || controller.signal.aborted || disposed) return false
+      loadError.value = error
+      throw error
+    } finally { if (id === loadId) { loadingValues.value = false; loadController = undefined } }
+  }
+  const context: SubmitContext<I> = { reset, setErrors, setValues, applyServerResponse }
   async function runValidation(scope?: { paths: readonly string[]; descendants: boolean }): Promise<ValidationResult<O>> {
     validationController?.abort()
     const controller = new AbortController()
@@ -153,7 +230,7 @@ export function useFormEngine<I extends FormValues, O>(options: EngineOptions<I,
     return reorderArray(path, indices.map((i) => current[i]), indices)
   }
   async function submit() {
-    if (submitting.value || options.disabled()) return
+    if (submitting.value || loadingValues.value || options.disabled()) return
     submitting.value = true
     const atRevision = revision
     try {
@@ -163,11 +240,24 @@ export function useFormEngine<I extends FormValues, O>(options: EngineOptions<I,
       const result = await pending
       if (atRevision !== revision || id !== validationId || disposed) return
       if (result.valid) {
-        await options.submitAction()?.(result.value, context)
-        if (!disposed) options.valid(result.value, context)
+        // A delayed server response must not overwrite a newer edit or record.
+        let atSubmit = revision
+        const applyCurrent = (action: () => void) => {
+          if (revision !== atSubmit || disposed) return
+          action()
+          atSubmit = revision
+        }
+        const guardedContext: SubmitContext<I> = {
+          reset: (next) => applyCurrent(() => reset(next)),
+          setErrors: (errors) => applyCurrent(() => setErrors(errors)),
+          setValues: (patch, settings) => applyCurrent(() => setValues(patch, settings)),
+          applyServerResponse: (response, settings) => applyCurrent(() => applyServerResponse(response, settings)),
+        }
+        await options.submitAction()?.(result.value, guardedContext)
+        if (!disposed && revision === atSubmit) options.valid(result.value, context)
       } else options.invalid(result.issues)
       return result
     } finally { submitting.value = false }
   }
-  return { state, values, submitting, validating, setFieldValue, validate, validateField, validateFields, submit, reset, setErrors, clearErrors, arrayKey, appendArrayItem, removeArrayItem, moveArrayItem }
+  return { state, values, submitting, validating, loadingValues, loadError, setValues, loadValues, cancelLoad, applyServerResponse, setFieldValue, validate, validateField, validateFields, submit, reset, setErrors, clearErrors, arrayKey, appendArrayItem, removeArrayItem, moveArrayItem }
 }

@@ -10,6 +10,7 @@ import { resolveSchema } from "../adapters/standard-schema/index.js";
 import { pathSegments, getPath, setPath } from "../utils/paths.js";
 import { cloneValue } from "../utils/values.js";
 import { expandArrays, withinPath } from './fieldArrays.js';
+import { mergeFieldProps } from './fieldProps.js';
 
 export function normalizeForm<I extends FormValues, O>(
   schema: SchemaSource<I, O> | undefined,
@@ -34,13 +35,13 @@ export function normalizeForm<I extends FormValues, O>(
     definitions.set(path, {
       ...previous,
       ...config,
-      props: { ...previous?.props, ...config.props },
+      props: mergeFieldProps(previous?.props, config.props),
       path,
     } as FieldDefinition<I>);
   }
   for (const field of expandArrays(values, arrays)) {
     const previous = definitions.get(field.path);
-    definitions.set(field.path, { ...previous, ...field, props: { ...previous?.props, ...field.props } } as FieldDefinition<I>);
+    definitions.set(field.path, { ...previous, ...field, props: mergeFieldProps(previous?.props, field.props) } as FieldDefinition<I>);
   }
   for (const [path, field] of definitions) {
     const array = arrays.find((definition) => withinPath(path, definition.path));
