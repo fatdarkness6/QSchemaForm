@@ -91,6 +91,18 @@ export interface FieldRegistry {
   resolve: (type: string) => Component | undefined
 }
 export type Translate = (key: string, params?: Record<string, unknown>) => string
+/** Engine-owned slot bindings; registered component props remain dynamic. */
+export interface FieldBindings extends Record<string, unknown> {
+  name: string
+  modelValue: unknown
+  label: string
+  error: boolean
+  errorMessage?: string
+  loading: boolean
+  disable?: boolean
+  readonly?: boolean
+  dir: Direction
+}
 export interface QSchemaFormOptions {
   translate?: Translate
   formatValidationMessage?: (issue: ValidationIssue, translate: Translate) => string

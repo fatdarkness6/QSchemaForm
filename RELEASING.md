@@ -1,11 +1,11 @@
 # Versioning and releasing
 
-The package name is `q-schema-form`; the first source version is `0.1.0`. Pushing code or a Git tag to GitHub does not publish a package to the npm registry. The GitHub install command in the README works independently of npm publication.
+The package name is `q-schema-form`; the current source version is `0.1.1` (the initial version was `0.1.0`). Pushing code or a Git tag to GitHub does not publish a package to the npm registry. The GitHub install command in the README works independently of npm publication.
 
 ## First npm publication
 
 1. Confirm your npm account and recheck that `q-schema-form` is available. Name availability can change. If a different name is needed, update package metadata, examples, imports, and docs together before tagging that version.
-2. Review the MIT license and the `0.1.0` changelog.
+2. Review the MIT license and the current version's changelog.
 3. From a clean checkout of the version you intend to publish, run:
 
    ```sh

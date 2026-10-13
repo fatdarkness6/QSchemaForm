@@ -1,6 +1,6 @@
 {
   "name": "q-schema-form",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Schema-driven, typed and localized forms for Vue and Quasar.",
   "author": {
     "name": "fatdarkness6",

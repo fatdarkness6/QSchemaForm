@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { build } from 'vite'
+import ts from 'typescript'
 
 const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 const { version } = await import('../dist/index.js')
@@ -10,6 +11,28 @@ for (const [name, entry] of Object.entries(manifest.exports)) {
   assert.ok(existsSync(entry.types), `Missing declaration for ${name}`)
   assert.ok(existsSync(entry.import), `Missing JavaScript for ${name}`)
 }
+// Dev dependencies must not hide missing optional imports in published declarations.
+const typeOptions = {
+  target: ts.ScriptTarget.ES2022,
+  module: ts.ModuleKind.ESNext,
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  strict: true,
+  skipLibCheck: false,
+  noEmit: true,
+  types: [],
+}
+const typeHost = ts.createCompilerHost(typeOptions)
+const optionalPeers = Object.entries(manifest.peerDependenciesMeta).filter(([, metadata]) => metadata.optional).map(([name]) => name)
+typeHost.resolveModuleNames = (names, containingFile) => names.map((name) => optionalPeers.some((peer) => name === peer || name.startsWith(`${peer}/`))
+  ? undefined
+  : ts.resolveModuleName(name, containingFile, typeOptions, typeHost).resolvedModule)
+const consumerTypes = ts.createProgram([resolve('tests/consumer/consumer.ts')], typeOptions, typeHost)
+const typeErrors = ts.getPreEmitDiagnostics(consumerTypes)
+assert.equal(typeErrors.length, 0, ts.formatDiagnosticsWithColorAndContext(typeErrors, {
+  getCanonicalFileName: (file) => file,
+  getCurrentDirectory: () => process.cwd(),
+  getNewLine: () => '\n',
+}))
 for (const [file, helperOnly] of [['bundle-entry.ts', false], ['helper-entry.ts', true]]) {
   const result = await build({
     configFile: false,
@@ -29,4 +52,4 @@ for (const [file, helperOnly] of [['bundle-entry.ts', false], ['helper-entry.ts'
     }
   }
 }
-console.log('Public export targets, adapter isolation and helper tree shaking passed.')
+console.log('Public exports, optional dependency isolation in types/runtime, version and tree shaking passed.')

@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends FormValues">
 import { computed, watch } from 'vue'
-import type { FieldContext, FieldDefinition, FieldRegistry, FormValues, Translate, Direction } from '../types/index.js'
+import type { FieldBindings, FieldContext, FieldDefinition, FieldRegistry, FormValues, Translate, Direction } from '../types/index.js'
 import { getPath } from '../utils/paths.js'
 import { useFieldOptions } from '../composables/useFieldOptions.js'
 
@@ -29,7 +29,7 @@ const component = computed(() => {
 })
 const options = useFieldOptions(() => props.field, () => context.value)
 watch(options.error, (error) => { if (error) emit('error', error) })
-const bindings = computed(() => ({
+const bindings = computed<FieldBindings>(() => ({
   ...(props.field.type === 'select' ? { emitValue: true, mapOptions: true } : {}),
   ...props.defaultProps,
   ...props.field.props,

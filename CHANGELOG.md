@@ -2,6 +2,17 @@
 
 Notable changes are recorded here. Git tags identify source versions; npm publication is a separate step.
 
+## [0.1.1] - 2026-10-13
+
+### Fixed
+
+- Core TypeScript declarations no longer require the optional phone-number dependency when consumers use only standard fields.
+- Custom field slot bindings now use an explicit public `FieldBindings` contract, so registered field props do not leak into generated core declarations.
+
+### Added
+
+- Package checks compile a core consumer with optional integrations unavailable to catch declaration dependency leaks.
+
 ## [0.1.0] - 2026-10-13
 
 Initial version of QSchemaForm, prepared for npm publication.
@@ -24,3 +35,4 @@ Initial version of QSchemaForm, prepared for npm publication.
 - Submit and explicit `validate()` display errors across the complete form.
 
 [0.1.0]: https://github.com/fatdarkness6/QSchemaForm/tree/v0.1.0
+[0.1.1]: https://github.com/fatdarkness6/QSchemaForm/compare/v0.1.0...v0.1.1

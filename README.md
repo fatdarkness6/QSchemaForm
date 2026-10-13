@@ -1,12 +1,12 @@
 # QSchemaForm
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/fatdarkness6/QSchemaForm/tree/v0.1.0)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/fatdarkness6/QSchemaForm/tree/v0.1.1)
 [![CI](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fatdarkness6/QSchemaForm/blob/main/LICENSE)
 
 Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized forms from Yup, Zod, or Standard Schema validators without wiring every input by hand.
 
-**Package:** `q-schema-form` · **Version:** `0.1.0` · **npm status:** not published yet.
+**Package:** `q-schema-form` · **Version:** `0.1.1` · **npm status:** not published yet.
 
 - Typed field configuration and nested form data.
 - Zod, Yup, and other Standard Schema-compatible validators.
@@ -22,7 +22,7 @@ Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized for
 Use this in an existing Vue 3 + Quasar application. Until the first npm publication, install the versioned GitHub source:
 
 ```sh
-npm install github:fatdarkness6/QSchemaForm#v0.1.0 zod
+npm install github:fatdarkness6/QSchemaForm#v0.1.1 zod
 ```
 
 The GitHub install builds the library using its `prepare` script, so it needs a supported Node version and installs the build tools temporarily. For local testing, you can also install the tarball produced by `npm pack`.
@@ -349,7 +349,7 @@ Tests cover the original behavior, adapters, rendered Quasar fields, synchroniza
 npm pack --dry-run
 npm pack
 # In a separate directory, install the tarball plus chosen peers:
-npm install /path/to/q-schema-form-0.1.0.tgz vue quasar
+npm install /path/to/q-schema-form-0.1.1.tgz vue quasar
 node /path/to/repo/tests/consumer/smoke.mjs .
 # Add yup, zod, vee-validate and libphonenumber-js to check every integration:
 node /path/to/repo/tests/consumer/smoke.mjs . --adapters --phone
