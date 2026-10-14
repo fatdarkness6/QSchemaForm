@@ -1,12 +1,12 @@
 # QSchemaForm
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/fatdarkness6/QSchemaForm/tree/v0.3.0)
+[![npm version](https://img.shields.io/npm/v/q-schema-form)](https://www.npmjs.com/package/q-schema-form)
 [![CI](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/fatdarkness6/QSchemaForm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fatdarkness6/QSchemaForm/blob/main/LICENSE)
 
 Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized forms from Yup, Zod, or Standard Schema validators without wiring every input by hand.
 
-**Package:** `q-schema-form` · **Version:** `0.3.0` · **npm status:** not published yet.
+**Package:** [q-schema-form](https://www.npmjs.com/package/q-schema-form) · **Version:** `0.3.0` · **License:** MIT.
 
 **New in 0.3.0:** load and update server values across all field types, search remote dropdowns, map server validation errors, and compute field props reactively. The Migration demo and `q-schema-form/compat` entry have been removed; use `QSchemaForm` directly.
 
@@ -24,15 +24,7 @@ Schema-driven, typed forms for Vue 3 and Quasar. Render validated, localized for
 
 ## Installation
 
-Use this in an existing Vue 3 + Quasar application. Until the first npm publication, install the versioned GitHub source:
-
-```sh
-npm install github:fatdarkness6/QSchemaForm#v0.3.0 zod
-```
-
-The GitHub install builds the library using its `prepare` script, so it needs a supported Node version and installs the build tools temporarily. For local testing, you can also install the tarball produced by `npm pack`.
-
-After the package is published to npm, the install command will be:
+Use this in an existing Vue 3 + Quasar application:
 
 ```sh
 npm install q-schema-form zod
@@ -40,6 +32,14 @@ npm install q-schema-form zod
 # Or choose Yup, optionally with VeeValidate:
 npm install q-schema-form yup vee-validate
 ```
+
+To install the versioned GitHub source instead:
+
+```sh
+npm install github:fatdarkness6/QSchemaForm#v0.3.0 zod
+```
+
+The GitHub install builds the library using its `prepare` script, so it needs a supported Node version and installs the build tools temporarily. For local testing, you can also install the tarball produced by `npm pack`. Registry installs use the prebuilt library and TypeScript declarations.
 
 Import from `q-schema-form` regardless of whether you installed from GitHub, a tarball, or npm. Each validator/state integration is optional and has its own import path.
 
